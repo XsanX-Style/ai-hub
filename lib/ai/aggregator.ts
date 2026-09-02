@@ -4,24 +4,47 @@ import { askClaude } from './claude';
 import { askGemini } from './gemini';
 
 export async function aggregateAnswers(prompt:string):Promise<AIResponse[]> {
-  const [gpt, claude, gemini] = await Promise.all([
-    askOpenAI(prompt),
-    askClaude(prompt),
-    askGemini(prompt)
-  ]);
+  const results: AIResponse[] = [];
 
-  return [
+  const providers = [
     {
       model:'GPT',
-      answer:gpt
+      enabled:!!process.env.OPENAI_API_KEY,
+      call:()=>askOpenAI(prompt)
     },
     {
       model:'Claude',
-      answer:claude
+      enabled:!!process.env.ANTHROPIC_API_KEY,
+      call:()=>askClaude(prompt)
     },
     {
       model:'Gemini',
-      answer:gemini
+      enabled:!!process.env.GOOGLE_API_KEY,
+      call:()=>askGemini(prompt)
     }
   ];
+
+  for (const provider of providers) {
+    if (!provider.enabled) {
+      results.push({
+        model: provider.model,
+        answer: 'Демо режим: API ключ модели не подключен.'
+      });
+      continue;
+    }
+
+    try {
+      results.push({
+        model: provider.model,
+        answer: await provider.call()
+      });
+    } catch {
+      results.push({
+        model: provider.model,
+        answer: 'Ошибка подключения к модели.'
+      });
+    }
+  }
+
+  return results;
 }
