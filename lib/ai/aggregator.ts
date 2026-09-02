@@ -1,18 +1,27 @@
 import type { AIResponse } from './types';
+import { askOpenAI } from './openai';
+import { askClaude } from './claude';
+import { askGemini } from './gemini';
 
 export async function aggregateAnswers(prompt:string):Promise<AIResponse[]> {
+  const [gpt, claude, gemini] = await Promise.all([
+    askOpenAI(prompt),
+    askClaude(prompt),
+    askGemini(prompt)
+  ]);
+
   return [
     {
       model:'GPT',
-      answer:'Provider подключается через API ключ.'
+      answer:gpt
     },
     {
       model:'Claude',
-      answer:'Provider подключается через API ключ.'
+      answer:claude
     },
     {
       model:'Gemini',
-      answer:'Provider подключается через API ключ.'
+      answer:gemini
     }
   ];
 }
